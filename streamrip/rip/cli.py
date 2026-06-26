@@ -194,7 +194,7 @@ async def url(ctx, urls):
 
             if version_coro is not None:
                 latest_version, notes = await version_coro
-                if latest_version != __version__:
+                if _is_newer_version(latest_version, __version__):
                     console.print(
                         f"\n[green]A new version of streamrip [cyan]v{latest_version}[/cyan]"
                         " is available! Run [white][bold]pip3 install streamrip --upgrade[/bold][/white]"
@@ -446,6 +446,41 @@ async def id(ctx, source, media_type, id):
             await main.add_by_id(source, media_type, id)
             await main.resolve()
             await main.rip()
+
+
+def _parse_version(v: str) -> tuple[int, ...]:
+    """Parse a dotted version string into a tuple of ints for comparison.
+
+    Non-numeric leading characters (e.g. a 'v' prefix) and pre-release
+    suffixes (e.g. '0rc1') are stripped per component. Returns an empty
+    tuple if nothing parseable is found.
+    """
+    parts = []
+    for component in v.strip().lstrip("vV").split("."):
+        num = ""
+        for ch in component:
+            if ch.isdigit():
+                num += ch
+            else:
+                break
+        if num == "":
+            break
+        parts.append(int(num))
+    return tuple(parts)
+
+
+def _is_newer_version(latest: str, current: str) -> bool:
+    """Return True only if `latest` is strictly newer than `current`.
+
+    Avoids spuriously prompting to "upgrade" when the installed build is
+    actually ahead of the published release (e.g. a fork or dev build).
+    Falls back to a plain inequality check if either version is unparseable.
+    """
+    latest_t = _parse_version(latest)
+    current_t = _parse_version(current)
+    if not latest_t or not current_t:
+        return latest != current
+    return latest_t > current_t
 
 
 async def latest_streamrip_version(verify_ssl: bool = True) -> tuple[str, str | None]:
