@@ -111,6 +111,8 @@ class PendingAlbum(Pending):
         if config.downloads.source_subdirectories:
             parent = os.path.join(parent, self.client.source.capitalize())
         formatter = config.filepaths.folder_format
+        if config.conversion.enabled and config.conversion.codec:
+            meta.info.container = config.conversion.codec.upper()
         folder = clean_filepath(
             meta.format_folder_path(formatter), config.filepaths.restrict_characters
         )
